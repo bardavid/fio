@@ -420,6 +420,89 @@ class FioJobTest_t0009(FioJobTest):
             self.passed = False
 
 
+class FioJobTest_t0012(FioJobTest):
+    """Test consists of fio test job t0012
+    Confirm ratios of job ios are 1:5:10
+    job1,job2,job3 respectively"""
+
+    def check_result(self):
+        super(FioJobTest_t0012, self).check_result()
+
+        if not self.passed:
+            return
+
+        ios1 = self.json_data['jobs'][0]['read']['total_ios']
+        ios2 = self.json_data['jobs'][1]['read']['total_ios']
+        ios3 = self.json_data['jobs'][2]['read']['total_ios']
+
+        logging.debug("Test {0}: ios1: {1}, ios2: {2}, ios3: {3}".format(self.testnum, ios1, ios2, ios3))
+
+        ratio1 = ios2 / ios1
+        ratio2 = ios3 / ios1
+
+        if ratio1 < 4 or ratio1 > 6 or ratio2 < 9 or ratio2 > 11:
+            self.failure_reason = "{0} ios ratio(r1={1:.3f}, r2={2:.3f}) mismatch (expected r1~5, r2~10),".format(self.failure_reason, ratio1, ratio2)
+            self.passed = False
+
+
+class FioJobTest_t0014(FioJobTest):
+    """Test consists of fio test job t0014
+    Confirm that job1_ios / job2_ios ~ 0.5 for entire duration
+    and that job1_ios / job3_ios ~ 0.33 for first half of duration.
+
+    The test is about making sure the flow feature can 
+    re-calibrate the activity dynamically"""
+
+    def check_result(self):
+        super(FioJobTest_t0014, self).check_result()
+
+        if not self.passed:
+            return
+
+        iops_files = []
+        for i in range(1,4):
+            file_data, success = self.get_file(os.path.join(self.test_dir, "{0}_iops.{1}.log".format(os.path.basename(self.fio_job), i)))
+
+            if not success:
+                self.failure_reason = "{0} unable to open output file,".format(self.failure_reason)
+                self.passed = False
+                return
+
+            iops_files.append(file_data.splitlines())
+
+        # there are 9 samples for job1 and job2, 4 samples for job3
+        iops1 = 0.0
+        iops2 = 0.0
+        iops3 = 0.0
+        for i in range(9):
+            if i < 4:
+                iops3 = iops3 + float(iops_files[2][i].split(',')[1])
+            elif i == 4:
+                ratio1 = iops1 / iops2
+                ratio2 = iops1 / iops3
+
+
+                if ratio1 < 0.46 or ratio1 > 0.54 or ratio2 < 0.24 or ratio2 > 0.42:
+                    self.failure_reason = "{0} iops ratio mismatch iops1={1} iops2={2} iops3={3}\
+                            expected r1~0.5 r2~0.33 got r1={4:.3f} r2={5:.3f},".format(self.failure_reason, iops1, iops2, iops3, ratio1, ratio2)
+                    self.passed = False
+
+            iops1 = iops1 + float(iops_files[0][i].split(',')[1])
+            iops2 = iops2 + float(iops_files[1][i].split(',')[1])
+
+            ratio1 = iops1/iops2
+            ratio2 = iops1/iops3
+            logging.debug("sample {0}: job1 iops={1} job2 iops={2} job3 iops={3} job1/job2={4:.3f} job1/job3={5:.3f}".
+                        format(i, iops1, iops2, iops3, ratio1, ratio2))
+
+        # test job1 and job2 succeeded to recalibrate
+        if ratio1 < 0.46 or ratio1 > 0.54:
+            self.failure_reason = "{0} iops ratio mismatch iops1={1} iops2={2} expected ratio~0.5 got ratio={3:.3f},".\
+                        format(self.failure_reason, iops1, iops2, ratio1)
+            self.passed = False
+            return
+
+
 class FioJobTest_iops_rate(FioJobTest):
     """Test consists of fio test job t0009
     Confirm that job0 iops == 1000
@@ -680,7 +763,7 @@ TEST_LIST = [
     },
     {
         'test_id':          12,
-        'test_class':       FioJobTest_iops_rate,
+        'test_class':       FioJobTest_t0012,
         'job':              't0012.fio',
         'success':          SUCCESS_DEFAULT,
         'pre_job':          None,
@@ -699,6 +782,16 @@ TEST_LIST = [
         'pre_success':      None,
         'output_format':    'json',
         'requirements':     [],
+    },
+    {
+        'test_id':          14,
+        'test_class':       FioJobTest_t0014,
+        'job':              't0014.fio',
+        'success':          SUCCESS_DEFAULT,
+        'pre_job':          None,
+        'pre_success':      None,
+        'output_format':    'json',
+        'requirements':     [], 
     },
     {
         'test_id':          1000,
