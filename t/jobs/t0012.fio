@@ -8,12 +8,12 @@
 bs=4k
 ioengine=null
 size=100g
-runtime=10
+runtime=12
 flow_id=1
-gtod_cpu=1
 flow_sleep=100
-rate_iops=200
 thread
+log_avg_msec=1000
+write_iops_log=t0012.fio
 
 [flow1]
 flow=1

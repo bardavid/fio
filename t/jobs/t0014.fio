@@ -12,12 +12,11 @@
 bs=4k
 ioengine=null
 size=100g
-runtime=10
+runtime=12
 flow_id=1
 thread
 log_avg_msec=1000
 write_iops_log=t0014.fio
-rate_iops=200
 
 [flow1]
 flow=1

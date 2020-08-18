@@ -114,6 +114,10 @@ void flow_init_job(struct thread_data *td)
 void flow_exit_job(struct thread_data *td)
 {
 	if (td->flow) {
+		struct timespec t;
+		fio_gettime(&t, NULL);
+		fprintf(stderr, "%lu %lu flow_exit_job td->flow=%p td->flow->id=%d td->flow_counter=%llu td->o.flow=%d td->flow->flow_counter=%llu\n", 
+				t.tv_sec, t.tv_nsec, td->flow, td->flow->id, td->flow_counter, td->o.flow, atomic_load_relaxed(&td->flow->flow_counter));
 		flow_put(td->flow, td->flow_counter, td->o.flow);
 		td->flow = NULL;
 	}
